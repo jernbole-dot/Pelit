@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arin autokorjaamo ja verstas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Bitter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#d9d6cf; --wall:#4f6b58; --wall-ink:#eef0e6; --paper:#f6f1e1; --ink:#2a2723; --muted:#6d675d;
+  --yellow:#f2c230; --rust:#a4522e; --ok:#3f7a46; --line:#c9c1ab; --panel:#ece7da;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1f2321; --wall:#2e4236; --wall-ink:#e3e8dc; --paper:#2c2a25; --ink:#ece6d6; --muted:#a49d8e;
+  --yellow:#e8b923; --rust:#d27552; --ok:#6fb479; --line:#46423a; --panel:#262522; color-scheme:dark;}}
+:root[data-theme="dark"]{--bg:#1f2321;--wall:#2e4236;--wall-ink:#e3e8dc;--paper:#2c2a25;--ink:#ece6d6;--muted:#a49d8e;--yellow:#e8b923;--rust:#d27552;--ok:#6fb479;--line:#46423a;--panel:#262522;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Bitter,Georgia,serif;font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--wall)}
+.sign{background:var(--wall);color:var(--wall-ink);padding:14px 16px 10px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;border-bottom:6px solid var(--yellow)}
+.sign h1{margin:0;font-family:"Saira Condensed",Impact,sans-serif;font-weight:800;font-size:clamp(26px,7vw,40px);line-height:1;letter-spacing:.01em}
+.sign h1 small{display:block;font-weight:500;font-size:.5em;opacity:.8;letter-spacing:.06em}
+.gauges{display:flex;gap:14px;margin-top:8px;font-family:"Saira Condensed",sans-serif;font-size:19px;font-weight:700;flex-wrap:wrap}
+.gauges span b{color:var(--yellow)}
+nav{display:flex;gap:6px;margin-top:10px}
+nav button{flex:1;font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:18px;padding:8px 4px;border:0;border-radius:4px 4px 0 0;background:rgba(255,255,255,.12);color:var(--wall-ink);cursor:pointer}
+nav button[aria-pressed="true"]{background:var(--yellow);color:#2a2723}
+main{max-width:720px;margin:0 auto;padding:16px 14px 40px}
+button{font:inherit}
+button:focus-visible{outline:3px solid var(--rust);outline-offset:2px}
+.ari{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border-left:5px solid var(--yellow);padding:10px 12px;margin-bottom:14px;font-style:italic}
+.ari strong{font-style:normal;font-family:"Saira Condensed",sans-serif;font-size:18px}
+.queue{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.order{background:var(--paper);border:1px solid var(--line);padding:10px;text-align:left;cursor:pointer;color:var(--ink);position:relative;box-shadow:2px 3px 0 var(--line)}
+.order[aria-pressed="true"]{outline:3px solid var(--yellow)}
+.order .no{font-family:"Saira Condensed",sans-serif;color:var(--rust);font-weight:700}
+.order .car{font-weight:600;display:block}
+.order .who{font-size:14px;color:var(--muted)}
+.order.done{opacity:.55}
+.stamp{position:absolute;right:8px;top:6px;transform:rotate(-8deg);font-family:"Saira Condensed",sans-serif;font-weight:800;color:var(--ok);border:2px solid var(--ok);padding:0 5px;font-size:14px}
+.stamp.wait{color:var(--muted);border-color:var(--muted)}
+.stamp.gone{color:var(--rust);border-color:var(--rust)}
+.job{background:var(--paper);border:1px solid var(--line);padding:16px;box-shadow:3px 4px 0 var(--line)}
+.job h2{font-family:"Saira Condensed",sans-serif;margin:0;font-size:26px;line-height:1.1}
+.job .complaint{font-size:18px;margin:6px 0 4px}
+.job svg{width:100%;max-width:300px;display:block;margin:6px auto}
+h3{font-family:"Saira Condensed",sans-serif;font-size:20px;margin:16px 0 6px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.tool{background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:8px 10px;border-radius:3px;cursor:pointer;text-align:left}
+.tool small{color:var(--muted);display:block;font-size:13px}
+.tool[aria-pressed="true"]{border-color:var(--yellow);border-width:2px}
+.big:disabled{opacity:.45;cursor:not-allowed}
+.tool:disabled{opacity:.45;cursor:not-allowed}
+.tool.fix{border-left:4px solid var(--rust)}
+.log{list-style:none;padding:0;margin:0;font-size:15px}
+.log li{border-bottom:1px dashed var(--line);padding:5px 0}
+.log b{font-family:"Saira Condensed",sans-serif;font-size:16px}
+.big{display:block;width:100%;margin-top:16px;padding:12px;font-family:"Saira Condensed",sans-serif;font-weight:800;font-size:22px;background:var(--yellow);color:#2a2723;border:0;border-radius:4px;cursor:pointer}
+.empty{color:var(--muted);text-align:center;padding:30px 10px}
+.shop .item{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--paper);border:1px solid var(--line);padding:12px;margin-bottom:10px}
+.shop .item p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.shop .item b{font-family:"Saira Condensed",sans-serif;font-size:19px}
+.buy{background:var(--wall);color:var(--wall-ink);border:0;padding:8px 14px;border-radius:3px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-size:18px;white-space:nowrap}
+.buy:disabled{opacity:.4;cursor:not-allowed}
+.owned{font-family:"Saira Condensed",sans-serif;color:var(--ok);font-weight:700;font-size:18px}
+.bar{height:12px;background:var(--panel);border:1px solid var(--line);margin:8px 0 14px}
+.bar i{display:block;height:100%;background:var(--yellow)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+.card{background:var(--paper);color:var(--ink);max-width:420px;width:100%;padding:20px;border-top:8px solid var(--yellow)}
+.card h2{font-family:"Saira Condensed",sans-serif;margin:0 0 8px;font-size:28px}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;margin-top:24px;font-size:14px}
+@media (prefers-reduced-motion:no-preference){.order[aria-pressed="true"]{transform:translateY(-2px);transition:transform .15s}}
+#hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:8px 12px;font-family:"Saira Condensed",sans-serif;font-weight:800;font-size:22px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);pointer-events:none}
+#gmsg{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(0,0,0,.6);color:#fff;padding:10px 12px;font-size:15px;pointer-events:none}
+.steer{display:flex;gap:10px;margin-top:10px}.steer button{flex:1;margin:0;font-size:30px;padding:16px;touch-action:none;user-select:none;-webkit-user-select:none}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<header class="sign">
+  <h1>Arin autokorjaamo<small>ja verstas · Porvoontie 12</small></h1>
+  <div class="gauges" id="gauges"></div>
+  <nav>
+    <button data-tab="korjaamo">Korjaamo</button>
+    <button data-tab="verstas">Verstas</button>
+    <button data-tab="kauppa">Työkalut</button>
+    <button data-tab="ajo">Ajopeli</button>
+  </nav>
+</header>
+<main id="app"></main>
+<div id="modal"></div>
+
+<script>
+const CARS=[["Toyota Corolla",2009],["Volvo V70",2006],["Škoda Octavia",2014],["VW Golf",2011],["Saab 9-3",2004],["Ford Focus",2012],["Nissan Micra",2008],["Opel Astra",2010],["Mazda 6",2013],["Peugeot 307",2005]];
+const COLORS=["#8b1e1e","#2f4f7a","#c9c3b6","#1f1f1f","#56703c","#b6862a","#6c6f73","#e2ddd2"];
+const NAMES=["Pirjo","Jussi","Seppo","Tiina","Mikko","Raili","Pekka","Satu","Kalevi","Hanna","Teemu","Aune","Jarmo","Leena"];
+const TESTS={akku:{n:"Akkutesti",t:10},obd:{n:"Vikakoodit (OBD)",t:10,req:"obd"},koeajo:{n:"Koeajo",t:25},kipina:{n:"Kipinätesti",t:20},paine:{n:"Polttoainepaine",t:20},jarrut:{n:"Jarrujen tarkastus",t:15},alusta:{n:"Alustan tarkastus",t:50}};
+
+const FAULTS=[
+ {id:"akku",s:"talvi",c:"Ei käynnisty aamuisin, startti vaan raksuttaa.",fix:"Vaihda akku",part:90,pay:190,rt:20,r:{akku:"11,4 V lepojännite – akku on lopussa.",koeajo:"Ei lähde käyntiin ilman apukaapeleita.",kipina:"Startti ei pyöritä tarpeeksi testiin."}},
+ {id:"puola",c:"Nykii kiihdyttäessä ja moottorivalo palaa.",fix:"Vaihda sytytyspuola",part:70,pay:210,rt:25,r:{obd:"P0302 – sytytyskatko sylinterissä 2.",kipina:"Sylinteri 2: heikko, keltainen kipinä.",koeajo:"Nykii selvästi kuormalla."}},
+ {id:"palat",s:"syksy",k:1,c:"Kirskuu ikävästi kun jarruttaa.",fix:"Vaihda etujarrupalat",part:60,pay:180,rt:35,r:{jarrut:"Etupalat 2 mm, metallia vasten.",koeajo:"Metallinen kirskuna jarrutuksessa."}},
+ {id:"laakeri",s:"kesä",k:1,c:"Humisee maantiellä, ja ääni kovenee kaarteissa.",fix:"Vaihda pyöränlaakeri",part:85,pay:260,rt:50,r:{koeajo:"Humina voimistuu vasemmalle kaartaessa.",alusta:"Oikea etupyöränlaakeri välyksellä ja rahisee."}},
+ {id:"pumppu",c:"Sammuu ajossa ja lähtee taas käyntiin hetken päästä.",fix:"Vaihda polttoainepumppu",part:160,pay:340,rt:60,r:{paine:"1,2 bar – pitäisi olla noin 3,5.",obd:"P0087 – polttoainepaine liian matala.",koeajo:"Yskii ja sammuu kymmenen minuutin päästä."}},
+ {id:"laturi",s:"talvi",c:"Akkuvalo palaa ajaessa ja valot himmenee.",fix:"Vaihda laturi",part:180,pay:330,rt:45,r:{akku:"Käynnissä 12,1 V – latausta ei tule.",obd:"P0562 – järjestelmäjännite matala.",koeajo:"Akkuvalo syttyy hetken ajon jälkeen."}},
+ {id:"vakaaja",s:"kevät",k:1,c:"Kolisee etupäästä töyssyissä.",fix:"Vaihda vakaajan tukivarret",part:40,pay:170,rt:30,r:{koeajo:"Kopinaa joka töyssyssä.",alusta:"Vakaajan tukivarret välyksellä molemmin puolin."}},
+ {id:"pakoputki",s:"kevät",k:1,c:"Kuulostaa ihan traktorilta.",fix:"Vaihda pakoputken välipala",part:75,pay:190,rt:35,r:{koeajo:"Pakoääni pärisee keskeltä autoa.",alusta:"Välipala ruostunut puhki."}},
+ {id:"termari",s:"talvi",c:"Lämmitin puhaltaa kylmää, eikä mittari nouse.",fix:"Vaihda termostaatti",part:35,pay:170,rt:30,r:{obd:"P0128 – jäähdytysneste ei saavuta käyntilämpöä.",koeajo:"Lämpömittari jää puoleen väliin alle."}},
+ {id:"lambda",s:"syksy",k:1,c:"Kulutus on noussut tosi paljon.",fix:"Vaihda lambda-anturi",part:95,pay:230,rt:25,r:{obd:"P0133 – lambda-anturi reagoi hitaasti.",koeajo:"Käy hieman rikkaalla, haisee bensalta."}},
+ {id:"vaara",c:"Tankkasin vahingossa bensaa dieseliin…",fix:"Tyhjennä ja huuhtele tankki",part:40,pay:260,rt:50,diesel:true,r:{paine:"Polttoaine haisee bensalta – väärä polttoaine.",koeajo:"Kävi hetken ja sammui. Ari ei suosittele."}},
+ {id:"jarrusatula",s:"syksy",k:1,c:"Auto vetää oikealle jarruttaessa.",fix:"Vaihda jarrusatula",part:120,pay:280,rt:45,r:{jarrut:"Vasen etusatula jumissa, palat kuluneet vinoon.",koeajo:"Vetää selvästi sivulle jarrutuksessa."}},
+ {id:"kytkin",c:"Kierrokset nousee mutta vauhti ei.",fix:"Vaihda kytkinsarja",part:220,pay:520,rt:120,r:{koeajo:"Kytkin luistaa isolla vaihteella ylämäessä.",alusta:"Vaihteiston alla kytkinpölyä."}},
+ {id:"iskari",s:"kevät",k:1,c:"Keikkuu ja pomppii kuin vene.",fix:"Vaihda iskunvaimentimet",part:140,pay:300,rt:60,r:{koeajo:"Kori jatkaa pomppimista töyssyn jälkeen.",alusta:"Etuiskarit vuotavat öljyä."}},
+ {id:"vesipumppu",s:"kesä",c:"Lattialle tippuu vihreää nestettä.",fix:"Vaihda vesipumppu",part:110,pay:320,rt:70,r:{alusta:"Vesipumpun tiiviste vuotaa, nestettä hihnan alla.",koeajo:"Lämpö nousee korkealle jonossa.",obd:"P0217 – moottori ylikuumentunut."}},
+ {id:"hehku",s:"talvi",c:"Diesel käynnistyy tosi huonosti pakkasella.",fix:"Vaihda hehkutulpat",part:80,pay:240,rt:50,r:{obd:"P0671 – hehkutulppa 1, piiri auki.",akku:"Akku kunnossa, 12,6 V.",koeajo:"Lämpimänä käy ihan hyvin.",kipina:"Dieselissä ei ole sytytystulppia, Ari naurahtaa."}},
+ {id:"ilmastointi",s:"kesä",c:"Ilmastointi puhaltaa lämmintä.",fix:"Korjaa A/C-vuoto ja täytä",part:90,pay:260,rt:40,r:{koeajo:"Ilmastointi ei viilennä ollenkaan.",alusta:"A/C-putken liitoksessa öljyinen jälki – vuoto."}},
+ {id:"ruoste",s:"kevät",k:1,c:"Kynnyksissä taitaa olla ruostetta.",fix:"Hitsaa kynnyspellit",part:60,pay:380,rt:110,r:{alusta:"Vasen kynnys puhki ruosteesta."}},
+ {id:"kolari",x:1,c:"Hinausauto toi tämän. Peura tuli tielle.",fix:"Kolarikorjaus: etupalkki ja jäähdytin",part:300,pay:850,rt:180,r:{koeajo:"Ei ajokunnossa, etupää lytyssä.",alusta:"Etupalkki taipunut, jäähdytin rikki."}},
+ {id:"sahkot",x:1,c:"Ruuvi meni väärään paikkaan ja katkaisi auton kaikki sähköt.",fix:"Korjaa katkennut johtosarja",part:30,pay:0,rt:60,r:{akku:"Akussa virtaa, mutta autossa ei jännitettä missään. Mittaristo pimeänä.",obd:"OBD ei saa yhteyttä, koko auto on pimeänä.",koeajo:"Ei mitään. Ei valoja, ei starttia, ei edes sisävaloa.",alusta:"Pääjohtosarjassa on ruuvi läpi. Ari tunnistaa ruuvin omakseen.",kipina:"Ei virtaa mihinkään, ei kipinää."}},
+ {id:"renkaat",tire:1,x:1,c:"Renkaat vaihtoon, kiitos!",fix:"Vaihda renkaat",part:0,pay:50,rt:30,r:{}}
+];
+const F=id=>FAULTS.find(x=>x.id===id);
+
+const REGULARS=[
+ {id:"raili",n:"Raili-mummo",car:"Nissan Micra",year:2003,color:"#b6862a",mult:1,pat:1,tip:15,line:"Raili: ”Toin pullaa, kun te olette aina niin ystävällisiä.” Sietää virheitä ja jättää juomarahaa."},
+ {id:"kimmo",n:"Kiire-Kimmo",car:"VW Golf",year:2018,color:"#1f1f1f",mult:1.5,pat:-1,tip:0,line:"Kimmo: ”Mulla on palaveri tunnin päästä!” Maksaa 50 % enemmän, mutta ei siedä arvailua."},
+ {id:"esko",n:"Insinööri Esko",car:"Volvo 240",year:1991,color:"#2f4f7a",mult:1,pat:0,tip:0,hint:1,line:"Esko: ”Mittasin jo itse, katso muistiinpanot.” Tuo yhden havainnon valmiina."},
+ {id:"pentti",n:"Pihi-Pentti",car:"Toyota Corolla",year:1998,color:"#6c6f73",mult:0.8,pat:0,tip:0,line:"Pentti: ”Kyllä käytetty osa riittää.” Tinkii laskusta 20 %."},
+ {id:"tapsa",n:"Taksi-Tapsa",car:"Škoda Superb",year:2020,color:"#e2ddd2",mult:1.2,pat:0,tip:0,line:"Tapsa: ”Auto seisoo, raha ei liiku.” Maksaa 20 % kiirelisää."}
+];
+const REG=id=>REGULARS.find(x=>x.id===id);
+
+const UPS=[
+ {id:"obd",n:"OBD-lukija",d:"Lukee vikakoodit. Säästää paljon arvailua.",p:250},
+ {id:"halli1",n:"Lisähallipaikka",d:"Kolmas auto mahtuu halliin.",p:300},
+ {id:"halli2",n:"Toinen lisähallipaikka",d:"Neljäs paikka. Vaatii ensimmäisen lisäpaikan.",p:550,req:"halli1"},
+ {id:"nostin",n:"Kaksipilarinostin",d:"Alustan tarkastus 15 minuutissa 50 sijaan, ja rengasvaihto puolet nopeammin.",p:450},
+ {id:"kahvi",n:"Kahvinkeitin asiakastilaan",d:"Asiakkaat sietävät yhden väärän korjauksen enemmän.",p:120},
+ {id:"apu",n:"Apumies Kalle",d:"Kaikki testit ja korjaukset 30 % nopeammin.",p:650}
+];
+
+const PROJECTS=[
+ {n:"Saab 96 ”Projekti”",base:"#7a5a3a",paint:"#9e1b1b",intro:"Tuo ruosteinen Saab 96 hallin perällä on mun oma. Kevään kiihdytyskisoihin se vielä ehtii.",
+  parts:[["kori","Korin hitsaus ja ruosteenpoisto",400],["moottori","Moottoriremontti",600],["vaihteisto","Vaihteiston kunnostus",300],["jarrut","Uudet jarrut ja letkut",200],["renkaat","Vanteet ja renkaat",250],["maali","Maalaus – Saabin punainen",500]],
+  btn:"Lähde kiihdytyskisaan",race:()=>({title:"Kiihdytyskisat",text:`Saab 96 ulvoo lähtöviivalla, ja 400 metriä menee ajassa <b>${(13.4-Math.min(S.rep,5)*0.15+Math.random()*0.6).toFixed(2)} s</b>. Luokkavoitto! Hallin perälle hinataan jo seuraava projekti.`})},
+ {n:"Volvo Amazon",base:"#5b6b5e",paint:"#8fb3cf",intro:"Naapurin Amazon seisoi latossa kolmekymmentä vuotta. Siitä tehdään museorekisterikelpoinen.",
+  parts:[["kori","Lattiapellit ja kynnykset",500],["moottori","B18-moottorin remontti",700],["vaihteisto","Overdrive-vaihteisto",400],["alusta","Alusta ja jouset",350],["sisusta","Kromit ja sisusta",450],["maali","Maalaus – vaaleansininen",600]],
+  btn:"Vie museoajoneuvokatsastukseen",race:()=>({title:"Museoajoneuvokatsastus",text:`Tarkastaja kiertää Amazonin kahdesti ja nyökkää: alkuperäisyys <b>${Math.round(88+Math.random()*11)} / 100</b>. Hyväksytty! Seuraavaksi pihaan peruuttaa jotain vielä vanhempaa.`})},
+ {n:"Massey Ferguson 35",base:"#6f6a5f",paint:"#a8342b",intro:"Isän vanha Massikka. Kesän traktorivetokisoissa se vielä näyttää.",
+  parts:[["moottori","Moottorin kunnostus",500],["hydrauliikka","Hydrauliikka",350],["renkaat","Takarenkaat",400],["sahkot","Sähköt",200],["painot","Etupainot ja vetokoukku",250],["maali","Maalaus – Massikan punainen",300]],
+  btn:"Lähde traktorivetoon",race:()=>({title:"Traktorivetokisat",text:`Massikka puskee painokelkkaa savu pystyssä <b>${Math.round(70+Math.random()*25)} metriä</b>. Täysi veto ja kylän kunnia! Kaikki kolme projektia ovat nyt valmiina.`})}
+];
+
+const QUIPS={start:["Kahvit kuppiin, ovet auki.","Pihalla jonoa jo kahdeksalta. Hyvä merkki.","Muista: kuuntele ensin, vaihda osia vasta sitten."],
+ right:["Siinä se. Ei mitään ihmeellistä.","Kuin oppikirjasta.","Tuo maksaa itsensä. Seuraava!"],
+ wrong:["Hmm. Ei se ollutkaan se.","Osa vaihdettu, vika jäi. Klassikko.","Arvaaminen tulee kalliiksi."],
+ gone:["Asiakas lähti. Huono päivä maineelle.","Siellä menee. Ei tule takaisin."]};
+const REVIEWS={good:["Nopea ja rehellinen.","Löysi vian heti.","Hinta kohdallaan, suosittelen.","Ari tietää mitä tekee."],
+ ok:["Hoiti homman, vaikka vähän kesti.","Vaihtoi yhden turhan osan, mutta nyt toimii."],
+ bad:["Vaihtoi turhaan osia, en mene toiste.","Ei saanut vikaa löydettyä."],
+ skip:["Ei ehtinyt edes katsomaan.","Odotin koko päivän pihalla."],
+ fail:["Auto hylättiin katsastuksessa. Pettymys."],
+ takuu:["Takuutyö hoitui ilman nurinoita."]};
+
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>a.sort(()=>Math.random()-.5);
+const SEASONS=["syksy","talvi","kevät","kesä"];
+const season=d=>SEASONS[Math.floor((d-1)/7)%4];
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+
+let S;
+const KEY="arin-korjaamo-v2";
+function fresh(){return{day:1,money:150,rep:2.5,time:480,queue:[],cur:null,up:{},proj:{},projIdx:0,tab:"korjaamo",ari:"",summary:null,race:null,event:null,reviews:[],comebacks:[],used:false,earned:0,st:{},ach:{},spares:0};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){
+  try{const v=localStorage.getItem(KEY);if(v)return JSON.parse(v)}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem("arin-korjaamo-v1"));if(o){const n=fresh();Object.assign(n,{day:o.day,money:o.money,rep:o.rep,up:o.up||{},proj:o.proj||{},projIdx:o.won?1:0});if(o.won)n.proj={};n.migrate=1;return n}}catch(e){}
+  return null;
+}
+
+const slots=()=>2+(S.up.halli1?1:0)+(S.up.halli2?1:0);
+const inHall=()=>S.queue.filter(q=>q.status==="hall"||q.status==="waiting").length;
+const isOpen=q=>["queue","hall","waiting"].includes(q.status);
+function patience(q){return Math.max(1,(S.up.kahvi?3:2)+(q.extra||0))}
+function speed(t){return Math.round(t*(S.up.apu?0.7:1)*(S.slow?1.3:1)*(S.mood==="huono"?1.15:1))}
+function testTime(id){let t=TESTS[id].t;if(id==="alusta"&&S.up.nostin)t=15;return speed(t)}
+function fixTime(o){return speed(o.tire&&S.up.nostin?15:o.rt)}
+const partCost=(o,used)=>used?Math.round(o.part*0.5):o.part;
+const needsOrder=(o,used)=>!used&&o.part>=150;
+
+function makeJob(faults,kind,used,extra={}){
+  let reg=null;
+  if(kind!=="takuu"&&kind!=="kolari"&&Math.random()<0.4){const c=REGULARS.filter(r=>!used.has(r.id));if(c.length){reg=pick(c);used.add(reg.id)}}
+  const car=pick(CARS),f0=F(faults[0]);
+  const others=shuffle(FAULTS.filter(x=>!faults.includes(x.id)&&!x.x)).slice(0,kind==="katsastus"?3:4).map(x=>x.id);
+  const job={no:S.day*100+S.queue.length+1,car:reg?reg.car:car[0],year:reg?reg.year:car[1]+Math.floor(Math.random()*3),color:reg?reg.color:pick(COLORS),
+    who:reg?reg.n:pick(NAMES),reg:reg?reg.id:null,extra:reg?reg.pat:0,mult:reg?reg.mult:1,kind,c:f0.c,
+    faults,fixed:[],log:[],tested:[],wrong:0,status:"queue",opts:f0.tire?faults.slice():shuffle([...faults,...others]),...extra};
+  if(kind==="normal"&&Math.random()<0.2)job.upsell=pick(UPSELLS);
+  if(kind==="katsastus")job.c="Katsastus on ylihuomenna. Käykää auto läpi, ettei tule hylkäystä. "+"Itse huomasin: "+f0.c.toLowerCase();
+  if(reg&&reg.hint&&!f0.tire){const k=Object.keys(f0.r)[0];job.tested.push(k);job.log.push(`<b>Eskon muistiinpano (${TESTS[k].n}):</b> ${f0.r[k]}`)}
+  return job;
+}
+
+function newDay(){
+  const carry=S.queue.filter(q=>q.status==="hall"||q.status==="waiting");
+  carry.forEach(q=>{if(q.status==="waiting"){q.status="hall";q.arrived=true;q.log.push("<b>Aamu:</b> tilattu osa saapui.")}else q.log.push("<b>Aamu:</b> auto oli hallissa yön yli.")});
+  S.queue=carry;S.cur=null;S.summary=null;S.event=null;S.noObd=false;S.slow=false;S.time=480;S.earned=0;
+  const sea=season(S.day),tireDay=(sea==="syksy"||sea==="kevät")&&(S.day-1)%7===5;
+  const used=new Set(carry.map(q=>q.reg).filter(Boolean));
+  let n=Math.min(7,Math.max(3,Math.round(1+S.rep)));
+  // takuu
+  S.comebacks.filter(c=>c.day<=S.day).forEach(c=>{
+    S.queue.push(makeJob([c.f],"takuu",used,{car:c.car,year:c.year,color:c.color,who:c.who,reg:c.reg,mult:0,extra:0,c:"Sama vika palasi! Purkuosa ei kestänyt. Takuuseen, kiitos."}));n--;});
+  S.comebacks=S.comebacks.filter(c=>c.day>S.day);
+  // event
+  let ari=pick(QUIPS.start);
+  if(tireDay){ari=sea==="syksy"?"Ensilumi tuli yöllä. Puoli Porvoota haluaa talvirenkaat alle tänään!":"Lumet suli. Nyt kaikki haluaa kesärenkaat alle!";S.event="Rengassesonki"}
+  else if(S.day>2&&Math.random()<0.35){
+    const ev=pick(["hinaus","toimittaja","katko","flunssa"]);
+    if(ev==="hinaus"){S.queue.push(makeJob(["kolari"],"kolari",used));n--;S.event="Kolariauto";ari="Hinausauto peruutti pihaan aamukuudelta. Isompi homma, isompi lasku."}
+    if(ev==="toimittaja"){S.event="Toimittaja";S.reporter=true;ari="Paikallislehden toimittaja tulee tänään asiakkaaksi. Yksi auto on hänen – hoidetaan se hyvin."}
+    if(ev==="katko"){S.event="Sähkökatko";S.noObd=true;ari="Sähköt poikki koko korttelista. OBD-lukija on pimeänä, mennään korvakuulolla."}
+    if(ev==="flunssa"){S.event="Ari flunssassa";if(S.up.apu){S.slow=true;ari="Ari on flunssassa. Kalle hoitaa päivän yksin, vähän hitaammin."}else{S.time=600;ari="Ari on flunssassa ja pääsi verstaalle vasta kymmeneltä."}}
+  }
+  // katsastus
+  if(Math.random()<0.45&&n>1){const pool=shuffle(FAULTS.filter(f=>f.k));S.queue.push(makeJob(pool.slice(0,2+Math.floor(Math.random()*2)).map(f=>f.id),"katsastus",used));n--}
+  const pool=[];FAULTS.filter(f=>!f.x).forEach(f=>{pool.push(f);if(f.s===sea){pool.push(f,f)}});
+  for(let i=0;i<n;i++)S.queue.push(makeJob([pick(pool).id],"normal",used));
+  if(tireDay)for(let j=0;j<4;j++){const q=makeJob(["renkaat"],"tire",used);q.c=sea==="syksy"?"Talvirenkaat alle, kiitos!":"Kesärenkaat alle, kiitos!";S.queue.push(q)}
+  if(S.reporter){const c=S.queue.filter(q=>q.kind==="normal"&&!q.reg);if(c.length){const r=pick(c);r.reporter=true;r.who="Toimittaja "+r.who}S.reporter=false}
+  if(S.rep<2.5){const c=S.queue.filter(q=>q.kind==="normal"&&q.status==="queue"&&!q.carried&&!q.reg);if(c.length>2){S.queue.splice(S.queue.indexOf(pick(c)),1);ari+=" Turbo-Tom kadun toisella puolella vei taas yhden asiakkaan."}}
+  else if(S.rep>=3.5&&Math.random()<0.3){const t=makeJob([pick(["kytkin","pumppu","hehku","laakeri","vesipumppu"])],"normal",used,{tom:true,reg:null,extra:0,mult:1.3});t.who="Turbo-Tomin lähettämä";S.queue.push(t);ari+=" Turbo-Tom soitti: hänellä on auto, jota ei osaa korjata."}
+  S.mood=pick(["hyvä","normaali","normaali","huono"]);
+  if(S.mood==="hyvä")ari+=" Ari viheltelee. Hyvä päivä, asiakkaat maksavat vähän reilummin.";
+  if(S.mood==="huono")ari+=" Ari on yrmeänä aamulla. Kaikki käy tänään vähän hitaammin.";
+  S.fleaMsg=null;if(isSat())ari+=" Lauantai: kirppis on auki verstaalla.";
+  S.queue.forEach((q,i)=>q.no=S.day*100+i+1);
+  S.ari=ari;
+}
+
+const clock=m=>`${String(Math.floor(m/60)).padStart(2,"0")}.${String(m%60).padStart(2,"0")}`;
+const stars=r=>{r=Math.round(r);return "★".repeat(r)+"☆".repeat(5-r)};
+function review(q,type,st){S.reviews.unshift({who:q.who,st,t:pick(REVIEWS[type])});S.reviews=S.reviews.slice(0,5)}
+
+function complete(q,passed){
+  let pay=Math.round(q.fixed.reduce((s,id)=>s+F(id).pay,0)*q.mult);
+  if(q.kind==="katsastus"&&passed)pay+=80;
+  if(q.reg&&q.mult>0)pay+=REG(q.reg).tip;pay+=q.bonus||0;if(S.mood==="hyvä")pay=Math.round(pay*1.1);
+  S.money+=pay;S.earned+=pay;
+  if(q.kind==="katsastus"&&!passed){q.status="failed";S.rep=Math.max(1,S.rep-0.5);review(q,"fail",1);q.log.push(`<b>Katsastus:</b> hylätty. Asiakas maksoi tehdyistä töistä ${pay} €.`);S.ari="Hylky. Jotain jäi huomaamatta.";return}
+  q.status="done";S.rep=Math.min(5,S.rep+(q.wrong?0.1:0.3));stat("fixed");if(q.wrong)S.st.streak=0;else{stat("streak");S.st.bestStreak=Math.max(S.st.bestStreak||0,S.st.streak)}if(q.kind==="katsastus")stat("kats");if(q.reg==="raili")stat("pulla");if(q.tom)stat("tom");
+  if(q.reporter){S.rep=Math.min(5,S.rep+0.8);S.reviews.unshift({who:"Uusimaa-lehti",st:5,t:"Arin korjaamo on Porvoon rehellisin paja."});S.ari="Lehteen tulee hyvä juttu!"}
+  else if(q.kind==="takuu")review(q,"takuu",4);
+  else review(q,q.wrong?"ok":"good",q.wrong?3:5);
+  q.log.push(`<b>Valmis:</b> ${q.kind==="takuu"?"takuutyö, ei laskua.":`asiakas maksoi ${pay} €.`}${q.reg==="raili"?" Ja jätti pullaa kahvihuoneeseen.":""}${q.kind==="katsastus"?" Katsastus meni läpi!":""}`);
+}
+function leave(q,type){
+  q.status="gone";S.st.streak=0;S.rep=Math.max(1,S.rep-(q.kind==="takuu"?0.6:0.3));
+  if(q.reporter){S.rep=Math.max(1,S.rep-1);S.reviews.unshift({who:"Uusimaa-lehti",st:1,t:"Korjaamolla arvattiin, asiakas maksoi."})}
+  else review(q,type,1);
+  S.reviews=S.reviews.slice(0,5);
+}
+function repair(q,o,used,fac=1){
+  S.time+=Math.round(fixTime(o)*fac);
+  if(q.faults.includes(o.id)&&!q.fixed.includes(o.id)){
+    q.fixed.push(o.id);q.opts=q.opts.filter(x=>x!==o.id);
+    q.log.push(`<b>${o.fix}${used?" (käytetty osa)":""}:</b> ${q.kind==="katsastus"?"korjattu.":"vika poistui."}`);
+    if(used&&Math.random()<0.35)S.comebacks.push({day:S.day+3+Math.floor(Math.random()*3),f:o.id,car:q.car,year:q.year,color:q.color,who:q.who,reg:q.reg});
+    if(q.kind!=="katsastus"&&q.fixed.length===q.faults.length){complete(q,true);if(!q.reporter)S.ari=pick(QUIPS.right)}
+    else S.ari="Yksi kunnossa. Onkohan muuta?";
+  }else{
+    q.wrong++;q.opts=q.opts.filter(x=>x!==o.id);S.rep=Math.max(1,S.rep-0.2);
+    q.log.push(`<b>${o.fix}:</b> ei auttanut. Osa jäi hyllyyn ylijäämäksi.`);S.spares++;S.ari=pick(QUIPS.wrong);
+    if(q.wrong>=patience(q)){leave(q,"bad");S.ari=pick(QUIPS.gone)}
+  }
+}
+
+function carSvg(c){
+  return `<svg viewBox="0 0 300 110" role="img" aria-label="Auto">
+  <rect x="0" y="98" width="300" height="4" fill="var(--line)"/>
+  <path d="M28 78 L36 56 Q40 50 50 49 L92 47 L122 24 Q128 20 138 20 L196 20 Q206 20 214 27 L240 48 L262 52 Q276 55 278 66 L280 80 Q280 86 272 86 L34 86 Q26 86 28 78Z" fill="${c}" stroke="var(--ink)" stroke-width="2.5"/>
+  <path d="M104 48 L128 28 Q131 26 136 26 L164 26 L164 48Z M172 26 L194 26 Q202 26 208 31 L228 48 L172 48Z" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+  <circle cx="78" cy="86" r="16" fill="var(--ink)"/><circle cx="78" cy="86" r="7" fill="var(--line)"/>
+  <circle cx="230" cy="86" r="16" fill="var(--ink)"/><circle cx="230" cy="86" r="7" fill="var(--line)"/>
+  <rect x="266" y="60" width="10" height="6" rx="2" fill="var(--yellow)"/></svg>`;
+}
+
+function render(){
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.tab===S.tab));
+  document.getElementById("gauges").innerHTML=`<span>${["Ma","Ti","Ke","To","Pe","La","Su"][(S.day-1)%7]} <b>${S.day}</b> · ${cap(season(S.day))}</span><span>Kello <b>${clock(S.time)}</b></span><span>Kassa <b>${S.money} €</b></span><span>Halli <b>${inHall()}/${slots()}</b></span><span title="Maine">${stars(S.rep)}</span>${S.event?`<span><b>${S.event}</b></span>`:""}`;
+  const app=document.getElementById("app");
+  app.innerHTML=S.tab==="korjaamo"?korjaamo():S.tab==="verstas"?verstas():S.tab==="ajo"?ajopeli():kauppa();
+  setTimeout(mount3d,0);
+  modal();save();
+}
+
+const STAMP={done:["VALMIS",""],gone:["LÄHTI","gone"],failed:["HYLÄTTY","gone"],waiting:["OSA TILATTU","wait"],hall:["HALLISSA","wait"]};
+const KIND={katsastus:" · katsastus",tire:" · renkaat",takuu:" · takuutyö",kolari:" · kolari"};
+
+function korjaamo(){
+  let h=`<div class="ari"><div><strong>Ari:</strong> ${S.ari}</div></div>`;
+  h+=`<div class="queue">`+S.queue.map((q,i)=>{const st=STAMP[q.status];return `<button class="order ${["done","gone","failed"].includes(q.status)?"done":""}" data-act="sel" data-i="${i}" aria-pressed="${S.cur===i}">
+    <span class="no">Työmääräin ${q.no}</span><span class="car">${q.car}</span><span class="who">${q.who}${q.reg?" · vakioasiakas":""}${KIND[q.kind]||""}</span>
+    ${st?`<span class="stamp ${st[1]}">${st[0]}</span>`:""}</button>`}).join("")+`</div>`;
+  const q=S.queue[S.cur],closed=S.time>=960;
+  if(!q)h+=`<div class="empty">${closed?"Kello on neljä, verstas sulkeutuu.":"Valitse työmääräin jonosta ja ota auto halliin."}</div>`;
+  else h+=job(q,closed);
+  const anyOpen=S.queue.some(x=>x.status==="queue"||x.status==="hall");
+  h+=(closed||!anyOpen)?`<button class="big" data-act="endday">Sulje verstas ja laske päivän kassa</button>`:`<button class="tool" style="margin-top:16px" data-act="endday">Lopeta päivä aikaisin</button>`;
+  if(S.reviews.length)h+=`<h3>Asiakasarviot</h3><ul class="log">${S.reviews.map(r=>`<li><b>${stars(r.st)}</b> ”${r.t}” – ${r.who}</li>`).join("")}</ul>`;
+  return h;
+}
+
+function job(q,closed){
+  const f0=F(q.faults[0]);
+  let h=`<section class="job"><h2>${q.car} · ${q.who}</h2>${carSvg(q.color)}<p class="complaint">”${q.c}”</p>`;
+  const notes=[];
+  if(q.reg)notes.push(REG(q.reg).line);if(q.tom)notes.push("Turbo-Tom ei saanut tätä korjattua ja lähetti sen Arille. Maksaa 30 % enemmän.");if(q.upsell&&!q.bonus)notes.push(`Asiakas kysyi: ”Voisitko samalla tehdä ${q.upsell.n.toLowerCase()}?”`);
+  if(q.kind==="katsastus")notes.push("Vikoja voi olla useampi. Etsi ne testeillä ja vie auto katsastukseen, kun luulet kaiken olevan kunnossa. Katsastukseen mennyt auto tuo 80 € bonuksen.");
+  if(q.kind==="takuu")notes.push("Takuutyö: ei laskua, mutta jos et hoida sitä, maine kärsii pahasti.");
+  if(q.reporter)notes.push("Toimittaja seuraa työtä. Hyvä työ nostaa mainetta paljon, huono laskee sitä.");
+  notes.forEach(n=>h+=`<p style="font-size:14px;color:var(--muted);margin:4px 0">${n}</p>`);
+  if(q.status==="queue"){
+    const full=inHall()>=slots();
+    h+=`<button class="big" data-act="inhall" ${full||closed?"disabled":""}>Ota auto halliin</button>${full?`<p style="font-size:14px;color:var(--rust)">Halli on täynnä. Valmista ensin jokin auto tai osta lisähallipaikka.</p>`:""}`;
+  }
+  if(q.status==="hall"&&!f0.tire){
+    h+=`<button class="tool" data-act="hood" style="margin-top:10px" ${closed?"disabled":""}>Avaa konepelti (3D)<small>napauta osia, 5 min / osa</small></button><h3>Tutki</h3><div class="btns">`+Object.entries(TESTS).map(([id,t])=>{
+      const locked=t.req&&(!S.up[t.req]||S.noObd);const done=q.tested.includes(id);
+      return `<button class="tool" data-act="test" data-t="${id}" ${locked||closed?"disabled":""}>${t.n}<small>${locked?(S.noObd&&S.up.obd?"Sähkökatko":"Vaatii OBD-lukijan"):(done?"Uudelleen, ":"")+testTime(id)+" min"}</small></button>`}).join("")+`</div>`;
+  }
+  if(q.log.length)h+=`<h3>Havainnot</h3><ul class="log">${q.log.map(l=>`<li>${l}</li>`).join("")}</ul>`;
+  if(q.status==="waiting")h+=`<p><em>Osa on tilattu ja saapuu huomenna aamulla. Auto pitää hallipaikan siihen asti.</em></p>`;
+  if(q.status==="hall"){
+    if(q.upsell&&!q.bonus)h+=`<button class="tool" data-act="upsell" style="margin-top:12px" ${closed?"disabled":""}>Lisätyö: ${q.upsell.n}<small>+${q.upsell.pay} € laskuun · ${speed(q.upsell.t)} min · tee ennen viimeistä korjausta</small></button>`;
+    if(q.order&&q.arrived){const o=F(q.order);h+=`<button class="big" data-act="install" ${closed?"disabled":""}>Asenna tilattu osa: ${o.fix} (${fixTime(o)} min)</button>`}
+    else{
+      h+=`<h3>Korjaa</h3>`;
+      if(!f0.tire)h+=`<div class="btns" style="margin-bottom:8px"><button class="tool" data-act="used" aria-pressed="${S.used}">${S.used?"Käytetyt osat purkaamolta":"Uudet osat"}<small>${S.used?"puoleen hintaan heti, mutta vika voi palata":"täysi hinta, kalliit osat tilataan huomiseksi"} · vaihda</small></button></div>`;
+      h+=`<div class="btns">`+q.opts.filter(id=>!q.fixed.includes(id)).map(id=>{const o=F(id),u=S.used&&!o.tire,c=partCost(o,u);
+        return `<button class="tool fix" data-act="fix" data-f="${id}" ${S.money<c||closed?"disabled":""}>${o.fix}<small>${c?`osa ${c} € · `:""}${needsOrder(o,u)?"tilaus, huomenna":fixTime(o)+" min"}</small></button>`}).join("")+`</div>`;
+      if(q.kind==="katsastus")h+=`<button class="big" data-act="inspect" ${closed?"disabled":""}>Vie katsastukseen</button>`;
+    }
+    if(!f0.tire)h+=`<p style="font-size:14px;color:var(--muted)">Vääriä korjauksia jäljellä ennen kuin asiakas lähtee: ${patience(q)-q.wrong}</p>`;
+  }
+  return h+`</section>`;
+}
+
+function verstasMain(){
+  const P=PROJECTS[S.projIdx];
+  if(!P)return `<div class="ari"><div><strong>Ari:</strong> Saab, Amazon ja Massikka – kaikki valmiina. Hylly on täynnä pokaaleja. Korjaamo pyörii silti.</div></div>`;
+  const done=P.parts.filter(p=>S.proj[p[0]]).length;
+  let h=`<div class="ari"><div><strong>Ari:</strong> ${done===0?P.intro:done<6?`${done}/6 valmiina. Vielä vähän.`:"Valmis on!"}</div></div>`;
+  h+=`<section class="job"><h2>${P.n}</h2><div id="v3d" data-color="${S.proj.maali?P.paint:P.base}" style="height:230px;touch-action:none;cursor:grab">${carSvg(S.proj.maali?P.paint:P.base)}</div><p style="font-size:13px;color:var(--muted);margin:0">Pyöritä autoa vetämällä.</p><div class="bar"><i style="width:${done/6*100}%"></i></div><p style="font-size:14px;color:var(--muted)">Projekti ${S.projIdx+1}/3</p></section><div class="shop" style="margin-top:14px">`;
+  h+=P.parts.map(([id,n,p])=>`<div class="item"><div><b>${n}</b></div>${S.proj[id]?'<span class="owned">Tehty</span>':`<button class="buy" data-act="proj" data-p="${id}" ${S.money<p?"disabled":""}>${p} €</button>`}</div>`).join("")+`</div>`;
+  if(done===6)h+=`<button class="big" data-act="race">${P.btn}</button>`;
+  return h;
+}
+
+function kauppa(){
+  let h=`<div class="ari"><div><strong>Ari:</strong> Hyvä työkalu maksaa kerran, huono joka päivä.</div></div><div class="shop">`;
+  h+=UPS.map(u=>`<div class="item"><div><b>${u.n}</b><p>${u.d}</p></div>${S.up[u.id]?'<span class="owned">Hallissa</span>':`<button class="buy" data-act="up" data-u="${u.id}" ${S.money<u.p||(u.req&&!S.up[u.req])?"disabled":""}>${u.p} €</button>`}</div>`).join("");
+  return h+`</div><button class="reset" data-act="reset">Aloita alusta</button>`;
+}
+
+function modal(){
+  const m=document.getElementById("modal");
+  if(S.mini){m.innerHTML=miniHtml();startMiniLoop();return}
+  if(S.hood!=null&&S.queue[S.hood]){if(!document.getElementById("hood3d"))m.innerHTML=hoodHtml();return}
+  if(S.migrate){m.innerHTML=`<div class="overlay"><div class="card" role="dialog" aria-modal="true"><h2>Korjaamo laajeni</h2><p>Uutta: katsastukset, tilattavat osat, hallipaikat, purkuosat, erikoistapahtumat, asiakasarviot, vuodenajat ja kolme projektiautoa. Kassa, maine ja työkalut säilyivät.</p><button class="big" data-act="okmig">Jatketaan</button></div></div>`;return}
+  if(S.summary){const s=S.summary;
+    m.innerHTML=`<div class="overlay"><div class="card" role="dialog" aria-modal="true"><h2>Päivä ${s.day} paketissa</h2>
+     <p>Valmiita autoja: ${s.done}<br>Lähteneitä tai hylättyjä: ${s.gone}<br>Hallissa yön yli: ${s.carry}<br>Tulot: ${s.earned} €<br>Kassassa nyt: ${S.money} €</p>
+     <p><em>Ari: ${s.gone===0&&s.done?"Hyvä päivä. Tällaisia lisää.":s.gone?"Pari jäi kiukuttelemaan. Huomenna paremmin.":"Hiljainen päivä."}</em></p>
+     <button class="big" data-act="next">Avaa ovet aamulla</button></div></div>`;}
+  else if(S.race)m.innerHTML=`<div class="overlay"><div class="card" role="dialog" aria-modal="true"><h2>${S.race.title}</h2><p>${S.race.text}</p><button class="big" data-act="closerace">Takaisin verstaalle</button></div></div>`;
+  else m.innerHTML="";
+}
+
+document.addEventListener("click",e=>{
+  const tab=e.target.closest("[data-tab]");if(tab){S.tab=tab.dataset.tab;render();return}
+  const b=e.target.closest("[data-act]");if(!b||b.disabled)return;
+  const a=b.dataset.act,q=S.queue[S.cur];
+  if(a==="sel"){S.cur=+b.dataset.i;const j=S.queue[S.cur];if(j.status==="queue"&&j.reg&&RQ[j.reg])S.ari=RQ[j.reg];if(j.status==="queue"&&F(j.faults[0]).diesel)S.ari="Taas joku on tankannut bensaa dieseliin…"}
+  if(a==="inhall"&&inHall()<slots()){q.status="hall";S.time+=5}
+  if(a==="test"){const id=b.dataset.t;if(!q.tested.includes(id))q.tested.push(id);S.time+=testTime(id);
+    const res=q.faults.filter(x=>!q.fixed.includes(x)).map(x=>F(x).r[id]).filter(Boolean);
+    q.log.push(`<b>${TESTS[id].n}:</b> ${res.length?res.join(" "):"Ei poikkeavaa."}`)}
+  if(a==="drive"){startGame();return}
+  if(a==="tighten"&&S.mini)tighten();
+  if(a==="hood"){S.hood=S.cur;document.getElementById("modal").innerHTML=""}
+  if(a==="hoodclose"){S.hood=null}
+  if(a==="upsell"&&q&&q.upsell){q.bonus=q.upsell.pay;S.time+=speed(q.upsell.t);q.log.push(`<b>Lisätyö:</b> ${q.upsell.n} tehty, +${q.upsell.pay} € laskuun.`);S.ari="Asiakas on otettu. Spoilerista tuli komea."}
+  if(a==="route")S.route=b.dataset.r;
+  if(a==="night")S.night=!S.night;
+  if(a==="mute"){S.mute=!S.mute;if(S.mute)engineStop();else beep(880,880,0.1,"triangle",0.1)}
+  if(a==="sell"){S.money+=S.spares*20;S.fleaMsg=`Myit ${S.spares} osaa ${S.spares*20} eurolla.`;S.spares=0}
+  if(a==="box"&&S.money>=120&&S.fleaDay!==S.day)openBox();
+  if(a==="used")S.used=!S.used;
+  if(a==="fix"){const o=F(b.dataset.f),u=S.used&&!o.tire,c=partCost(o,u);
+    if(S.money>=c){S.money-=c;
+      if(needsOrder(o,u)){q.order=o.id;q.arrived=false;q.status="waiting";S.time+=10;q.log.push(`<b>Tilattu:</b> ${o.fix}, osa saapuu huomenna.`);S.ari="Osa tulee aamulla. Auto saa odottaa hallissa."}
+      else startMini(q,o,u)}}
+  if(a==="install"){const o=F(q.order);q.order=null;q.arrived=false;startMini(q,o,false)}
+  if(a==="inspect"){complete(q,q.fixed.length===q.faults.length);if(q.status==="done")S.ari="Läpi meni, puhtain paperein."}
+  if(a==="endday"){let gone=0,carry=0;
+    S.queue.forEach(j=>{if(j.status==="queue"){leave(j,"skip");gone++}else if(j.status==="hall"||j.status==="waiting"){carry++;if(j.status==="hall")S.rep=Math.max(1,S.rep-0.1)}});
+    S.summary={day:S.day,done:S.queue.filter(j=>j.status==="done").length,gone:S.queue.filter(j=>j.status==="gone"||j.status==="failed").length,carry,earned:S.earned}}
+  if(a==="next"){S.day++;newDay();S.tab="korjaamo"}
+  if(a==="up"){const u=UPS.find(x=>x.id===b.dataset.u);if(S.money>=u.p){S.money-=u.p;S.up[u.id]=true}}
+  if(a==="proj"){const p=PROJECTS[S.projIdx].parts.find(x=>x[0]===b.dataset.p);if(S.money>=p[2]){S.money-=p[2];S.proj[p[0]]=true}}
+  if(a==="race")S.race=PROJECTS[S.projIdx].race();
+  if(a==="closerace"){S.race=null;S.projIdx++;S.proj={}}
+  if(a==="okmig"){S.migrate=0;if(!S.queue.length)newDay()}
+  if(a==="reset"&&confirm("Aloitetaanko alusta? Kaikki edistyminen katoaa.")){S=fresh();newDay()}
+  checkAch();render();
+});
+
+/* ---------- 3D ---------- */
+let R3=null,G=null;
+function r3(){if(R3)return R3;if(!window.THREE)return null;try{const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));R3={r,raf:0}}catch(e){return null}return R3}
+const M=c=>new THREE.MeshLambertMaterial({color:c});
+function carMesh(color){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.55,4),M(color));body.position.y=0.6;g.add(body);
+  const cab=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,2),M(color));cab.position.set(0,1.1,0.2);g.add(cab);
+  const gl=new THREE.Mesh(new THREE.BoxGeometry(1.54,0.34,1.7),M(0x8fb0c4));gl.position.set(0,1.12,0.2);g.add(gl);
+  const wg=new THREE.CylinderGeometry(0.38,0.38,0.32,18);wg.rotateZ(Math.PI/2);
+  [[-0.9,1.3],[0.9,1.3],[-0.9,-1.3],[0.9,-1.3]].forEach(([x,z])=>{const w=new THREE.Mesh(wg,M(0x1d1d1d));w.position.set(x,0.38,z);g.add(w)});
+  [[-0.6,-2.01,0xffe9a0],[0.6,-2.01,0xffe9a0],[-0.6,2.01,0xc4231b],[0.6,2.01,0xc4231b]].forEach(([x,z,c])=>{const l=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.18,0.05),new THREE.MeshBasicMaterial({color:c}));l.position.set(x,0.7,z);g.add(l)});
+  return g;
+}
+function lights(sc){sc.add(new THREE.AmbientLight(0xffffff,0.6));const d=new THREE.DirectionalLight(0xffffff,0.8);d.position.set(5,10,6);sc.add(d)}
+function attach(el,h){const R=r3();if(!R)return null;cancelAnimationFrame(R.raf);engineStop();el.innerHTML="";el.appendChild(R.r.domElement);R.r.domElement.style.display="block";R.r.setSize(el.clientWidth,h);return R}
+function mount3d(){
+  const v=document.getElementById("v3d"),g=document.getElementById("g3d");
+  const hd=document.getElementById("hood3d");if(hd)mountHood(hd);else if(v)mountVerstas(v);else if(g)mountGame(g);else if(R3){cancelAnimationFrame(R3.raf);engineStop()}
+}
+function mountVerstas(el){
+  const R=attach(el,230);if(!R)return;
+  const sc=new THREE.Scene();sc.background=new THREE.Color(0x4f6b58);lights(sc);
+  const floor=new THREE.Mesh(new THREE.CylinderGeometry(4,4,0.1,40),M(0x8a8d8f));sc.add(floor);
+  const stripe=new THREE.Mesh(new THREE.RingGeometry(3.7,3.95,40),new THREE.MeshBasicMaterial({color:0xf2c230}));stripe.rotation.x=-Math.PI/2;stripe.position.y=0.06;sc.add(stripe);
+  const car=carMesh(el.dataset.color);sc.add(car);
+  const cam=new THREE.PerspectiveCamera(40,el.clientWidth/230,0.1,100);cam.position.set(5.5,3.2,6);cam.lookAt(0,0.6,0);
+  let rot=0.6,drag=null,vel=0.004;
+  const c=R.r.domElement;
+  c.onpointerdown=e=>{drag=e.clientX;c.setPointerCapture(e.pointerId)};
+  c.onpointermove=e=>{if(drag!==null){vel=(e.clientX-drag)*0.0015;rot+=(e.clientX-drag)*0.01;drag=e.clientX}};
+  c.onpointerup=()=>{drag=null};
+  const loop=()=>{if(drag===null){rot+=vel;vel+= (0.004-vel)*0.02}car.rotation.y=rot;R.r.render(sc,cam);R.raf=requestAnimationFrame(loop)};loop();
+}
+function ajoColor(){const P=PROJECTS[Math.min(S.projIdx,PROJECTS.length-1)];return S.projIdx>0?PROJECTS[S.projIdx-1].paint:(S.proj.maali?P.paint:"#c9c3b6")}
+const ROUTES={kyla:{n:"Kylätie",d:"hirviä ja traktoreita",sp:1,obs:["hirvi","traktori","kuoppa","kuoppa"],road:0x4a4c4f},
+ moottori:{n:"Moottoritie",d:"kovaa vauhtia, paljon autoja",sp:1.35,obs:["auto","auto","auto","hirvi"],road:0x35373a},
+ sora:{n:"Sorapolku",d:"kuoppia ja kiviä, hyppii",sp:0.8,obs:["kuoppa","kivi","kuoppa","hirvi"],road:0x8a7656,bump:1}};
+function ajopeli(){
+  const daily=S.driveDay!==S.day,r=S.route||"kyla";
+  return `<div class="ari"><div><strong>Ari:</strong> Illalla ehtii kurvailemaan. Väistä esteitä, kerää jakoavaimia ja vihreitä bensakanistereita. ${daily?"Päivän ensimmäinen ajo tuo kassaan 8 € jakoavaimelta.":"Tämän päivän palkkioajo on jo ajettu, mutta saa ajaa huvikseen."}</div></div>
+  <div class="btns" style="margin-bottom:10px">${Object.entries(ROUTES).map(([id,x])=>`<button class="tool" data-act="route" data-r="${id}" aria-pressed="${r===id}">${x.n}<small>${x.d}</small></button>`).join("")}
+  <button class="tool" data-act="night" aria-pressed="${!!S.night}">${S.night?"Yöajo":"Päiväajo"}<small>vaihda</small></button>
+  <button class="tool" data-act="mute" aria-pressed="${!S.mute}">${S.mute?"Äänet pois":"Äänet päällä"}<small>vaihda</small></button></div>
+  <div style="position:relative"><div id="g3d" style="height:min(58vh,440px);touch-action:none;background:#9cc3d6"></div>
+  <div id="hud"><span id="hd">0 m</span><span id="hf">⛽ 100 %</span><span id="ht">🔧 0</span></div>
+  <div id="gmsg">${S.lastDrive||"Ohjaa nuolinäppäimillä, napauttamalla ruudun reunoja tai alla olevilla napeilla."}${S.bestDrive?` Ennätys: ${S.bestDrive} m.`:""}</div></div>
+  <div class="steer"><button class="big" id="gl" aria-label="Vasemmalle">◀</button><button class="big" id="gr" aria-label="Oikealle">▶</button></div>
+  <button class="big" data-act="drive">Aja</button>`;
+}
+function mountGame(el){
+  const h=el.clientHeight||400,R=attach(el,h);if(!R)return;
+  const route=ROUTES[S.route||"kyla"],sea=season(S.day),winter=sea==="talvi",night=!!S.night;
+  const sky=night?0x0e1520:winter?0xc8d3dc:0x9cc3d6;
+  const sc=new THREE.Scene();sc.background=new THREE.Color(sky);sc.fog=night?new THREE.Fog(sky,8,55):new THREE.Fog(sky,30,110);
+  if(night){sc.add(new THREE.AmbientLight(0x8899bb,0.22));const d=new THREE.DirectionalLight(0x9fb0d0,0.15);d.position.set(-5,10,5);sc.add(d)}else lights(sc);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,400),M(winter?0xf2f4f5:sea==="syksy"?0x8a7a3a:0x5f8a45));ground.rotation.x=-Math.PI/2;ground.position.z=-150;sc.add(ground);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(9.5,400),M(winter&&route.road!==0x8a7656?0x7d8186:route.road));road.rotation.x=-Math.PI/2;road.position.set(0,0.01,-150);sc.add(road);
+  const moving=[];
+  if(!route.bump)for(let i=0;i<24;i++)[-1.5,1.5].forEach(x=>{const d=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.02,3),M(0xf3f0e6));d.position.set(x,0.03,10-i*9);sc.add(d);moving.push(d)});
+  for(let i=0;i<40;i++){const t=new THREE.Group();const tr=new THREE.Mesh(new THREE.ConeGeometry(1.2,4,8),M(winter?0x3d5a4a:0x2f5a34));tr.position.y=2.4;t.add(tr);const st=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.8),M(0x5a3d22));st.position.y=0.4;t.add(st);
+    t.position.set((Math.random()<.5?-1:1)*(7+Math.random()*16),0,10-i*5.5);sc.add(t);moving.push(t)}
+  const car=carMesh(ajoColor());sc.add(car);
+  if(night){const sp=new THREE.SpotLight(0xfff2c0,2.4,70,0.55,0.5);sp.position.set(0,1.1,-2);const tg=new THREE.Object3D();tg.position.set(0,0,-30);car.add(sp);car.add(tg);sp.target=tg}
+  const cam=new THREE.PerspectiveCamera(60,el.clientWidth/h,0.1,200);cam.position.set(0,4.2,8);cam.lookAt(0,1,-8);
+  G={run:false,lane:0,x:0,t:0,dist:0,tok:0,fuel:100,objs:[],spawn:1};
+  const mk={
+    hirvi(){const g=new THREE.Group(),b=M(0x5a3a22);const bd=new THREE.Mesh(new THREE.BoxGeometry(2,1,0.9),b);bd.position.y=1.7;g.add(bd);
+      [[-0.7,-.3],[0.7,-.3],[-0.7,.3],[0.7,.3]].forEach(([x,z])=>{const l=new THREE.Mesh(new THREE.BoxGeometry(0.18,1.3,0.18),b);l.position.set(x,0.65,z);g.add(l)});
+      const hd=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.5,0.5),b);hd.position.set(1.2,2.2,0);g.add(hd);const an=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.12,1.6),M(0xd8c9a8));an.position.set(1.1,2.6,0);g.add(an);
+      [-0.15,0.15].forEach(z=>{const e=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.08,0.08),new THREE.MeshBasicMaterial({color:night?0xffffaa:0x111111}));e.position.set(1.55,2.3,z);g.add(e)});return g},
+    traktori(){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,2.4),M(0xa8342b));b.position.y=1.1;g.add(b);const k=new THREE.Mesh(new THREE.BoxGeometry(1.2,1,1),M(0xa8342b));k.position.set(0,2.1,0.6);g.add(k);
+      const wg=new THREE.CylinderGeometry(0.8,0.8,0.4,16);wg.rotateZ(Math.PI/2);[-0.9,0.9].forEach(x=>{const w=new THREE.Mesh(wg,M(0x1d1d1d));w.position.set(x,0.8,0.7);g.add(w)});
+      const l=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.05),new THREE.MeshBasicMaterial({color:0xff7a00}));l.position.set(0,2.75,1.1);g.add(l);return g},
+    auto(){return carMesh(pick([0x8b1e1e,0x2f4f7a,0xe2ddd2,0x1f1f1f,0x56703c]))},
+    kivi(){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(0.8),M(0x77736c));m.position.y=0.5;return m},
+    kuoppa(){const m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,0.06,20),M(0x26282a));m.position.y=0.04;return m},
+    sign(){const g=new THREE.Group();const p=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2.2),M(0x9a9a9a));p.position.y=1.1;g.add(p);
+      const t=new THREE.Mesh(new THREE.CylinderGeometry(0.75,0.75,0.05,3),new THREE.MeshBasicMaterial({color:0xf2c230}));t.rotation.x=Math.PI/2;t.rotation.y=Math.PI/2;t.position.y=2.5;g.add(t);
+      const r=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,0.04,3),new THREE.MeshBasicMaterial({color:0xc4231b}));r.rotation.x=Math.PI/2;r.rotation.y=Math.PI/2;r.position.set(0,2.5,-0.02);g.add(r);return g},
+    can(){const m=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.75,0.3),new THREE.MeshBasicMaterial({color:0x2f9a3e}));m.position.y=0.6;return m}
+  };
+  function add(kind,lane,z,deco){const o=mk[kind]();o.position.x=deco?lane:lane*3;o.position.z=z;sc.add(o);G.objs.push({m:o,lane,kind,deco})}
+  function spawn(){
+    const lanes=shuffle([-1,0,1]),type=pick(route.obs);
+    add(type,lanes[0],-110);
+    if(type==="hirvi")SFX.sign();if(type==="hirvi")add("sign",lanes[0]<0?-5.8:5.8,-88,true);
+    if(G.t>10&&Math.random()<0.3)add(route.bump?"kivi":"kuoppa",lanes[1],-110);
+    else if(Math.random()<0.22)add("can",lanes[1],-112);
+    if(Math.random()<0.7){add("tok",lanes[2],-110-Math.random()*8)}
+  }
+  mk.tok=()=>{const t=new THREE.Mesh(new THREE.TorusGeometry(0.45,0.14,8,20),new THREE.MeshBasicMaterial({color:0xf2c230}));t.position.y=1.1;return t};
+  const hd=document.getElementById("hd"),hf=document.getElementById("hf"),ht=document.getElementById("ht"),msg=document.getElementById("gmsg");
+  const steer=d=>{if(G.run){const n=Math.max(-1,Math.min(1,G.lane+d));if(n!==G.lane)SFX.steer();G.lane=n}};
+  document.getElementById("gl").onpointerdown=e=>{e.preventDefault();steer(-1)};document.getElementById("gr").onpointerdown=e=>{e.preventDefault();steer(1)};
+  R.r.domElement.onpointerdown=e=>{const r=e.target.getBoundingClientRect();steer(e.clientX-r.left<r.width/2?-1:1)};
+  G.steer=steer;G.clear=()=>{G.objs.forEach(o=>sc.remove(o.m));G.objs=[]};
+  let last=performance.now();
+  const loop=now=>{
+    const dt=Math.min(0.05,(now-last)/1000);last=now;
+    const sp=G.run?Math.min(52,(20+G.t*0.7)*route.sp):3;
+    if(G.run){G.t+=dt;G.dist+=sp*dt;G.spawn-=dt;G.fuel-=dt*3.2*route.sp;if(G.spawn<=0){spawn();G.spawn=Math.max(0.5,1.4-G.t*0.025)/route.sp}if(G.fuel<=0){G.fuel=0;end("bensa")}engineSet(sp);if(route.bump&&Math.random()<dt*7)noise(0.05,0.07,2600);if(G.fuel<20&&G.run&&Math.floor(G.t)!==G.lowT){G.lowT=Math.floor(G.t);beep(990,990,0.08,"square",0.05)}}
+    moving.forEach(m=>{m.position.z+=sp*dt;if(m.position.z>12)m.position.z-=(m.children.length?220:216)});
+    G.x+=(G.lane*3-G.x)*Math.min(1,dt*10);car.position.x=G.x;car.rotation.y=(G.x-G.lane*3)*0.08;car.rotation.z=(G.lane*3-G.x)*0.03;
+    car.position.y=route.bump&&G.run?Math.abs(Math.sin(G.t*17))*0.08:0;
+    for(let i=G.objs.length-1;i>=0;i--){const o=G.objs[i];o.m.position.z+=sp*dt;if(o.kind==="tok")o.m.rotation.y+=dt*4;
+      if(!o.deco&&G.run){const dz=Math.abs(o.m.position.z),dx=Math.abs(o.m.position.x-G.x);
+        if(dz<(o.kind==="traktori"||o.kind==="auto"?2.7:2.1)&&dx<1.7){
+          if(o.kind==="tok"){G.tok++;SFX.tok();sc.remove(o.m);G.objs.splice(i,1);continue}
+          if(o.kind==="can"){SFX.can();G.fuel=Math.min(100,G.fuel+35);sc.remove(o.m);G.objs.splice(i,1);continue}
+          end(o.kind)}}
+      if(o.m.position.z>15){if(o.kind==="hirvi"&&G.run)stat("moose");sc.remove(o.m);G.objs.splice(i,1)}}
+    cam.position.x=G.x*0.4;cam.position.y=4.2+(route.bump&&G.run?Math.sin(G.t*23)*0.05:0);cam.lookAt(G.x*0.3,1,-8);
+    hd.textContent=Math.round(G.dist)+" m";hf.textContent="⛽ "+Math.ceil(G.fuel)+" %";ht.textContent="🔧 "+G.tok;
+    R.r.render(sc,cam);R.raf=requestAnimationFrame(loop)};
+  R.raf=requestAnimationFrame(loop);
+  function end(kind){
+    if(!G.run)return;G.run=false;engineStop();SFX.crash(kind);const d=Math.round(G.dist);
+    const daily=S.driveDay!==S.day,pay=daily?G.tok*8:0;
+    if(daily){S.money+=pay;S.driveDay=S.day}
+    S.bestDrive=Math.max(S.bestDrive||0,d);
+    const why={hirvi:"Hirvi tuli tielle!",traktori:"Traktorin perään. Tuo oli Seppo, se ajaa aina keskellä tietä.",kuoppa:"Kuoppa vei renkaan.",auto:"Peräänajo. Vakuutusyhtiö soittaa huomenna.",kivi:"Kivi osui pohjapanssariin.",bensa:"Bensa loppui. Ari soittaa Kallelle kanisterin kanssa."}[kind];
+    S.lastDrive=`${why} Ajoit ${d} m ja keräsit ${G.tok} jakoavainta${daily?`, kassaan ${pay} €`:""}.`;
+    msg.style.display="";msg.textContent=S.lastDrive;checkAch();save();
+    setTimeout(()=>{if(S.tab==="ajo"&&!G.run)render()},1500);
+  }
+}
+function startGame(){
+  if(!G||!document.getElementById("g3d"))return;
+  if(!window.THREE){document.getElementById("gmsg").textContent="3D-kirjasto ei latautunut. Tarkista nettiyhteys.";return}
+  G.clear();Object.assign(G,{run:true,lane:0,t:0,dist:0,tok:0,fuel:100,spawn:1.2});
+  engineStart();
+  document.getElementById("gmsg").style.display="none";
+}
+
+/* ---------- äänet ---------- */
+let AC=null,ENG=null;
+function audio(){if(S.mute)return null;if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}if(AC.state==="suspended")AC.resume();return AC}
+function engineStart(){const a=audio();if(!a)return;engineStop();const o=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();
+  o.type="sawtooth";o2.type="square";f.type="lowpass";f.frequency.value=650;g.gain.value=0.045;o.frequency.value=45;o2.frequency.value=22;
+  o.connect(f);o2.connect(f);f.connect(g);g.connect(a.destination);o.start();o2.start();ENG={o,o2,g}}
+function engineSet(sp){if(ENG&&AC){const t=AC.currentTime,w=Math.sin(t*9)*2;ENG.o.frequency.setTargetAtTime(38+sp*3.2+w,t,0.12);ENG.o2.frequency.setTargetAtTime(19+sp*1.6,t,0.12)}}
+function engineStop(){if(ENG&&AC){try{const t=AC.currentTime;ENG.g.gain.setTargetAtTime(0,t,0.05);ENG.o.stop(t+0.3);ENG.o2.stop(t+0.3)}catch(e){}}ENG=null}
+function beep(f1,f2,dur,type="sine",vol=0.15,delay=0){const a=audio();if(!a)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+delay;o.type=type;
+  o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+0.02)}
+function noise(dur,vol=0.4,freq=800){const a=audio();if(!a)return;const b=a.createBuffer(1,Math.floor(a.sampleRate*dur),a.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+  s.buffer=b;f.type="lowpass";f.frequency.value=freq;g.gain.value=vol;s.connect(f);f.connect(g);g.connect(a.destination);s.start()}
+const SFX={
+  tok:()=>{beep(988,988,0.07,"triangle",0.12);beep(1480,1480,0.12,"triangle",0.12,0.07)},
+  can:()=>{beep(220,110,0.12,"square",0.06);beep(200,95,0.12,"square",0.06,0.13);beep(180,85,0.14,"square",0.06,0.26)},
+  steer:()=>{beep(1300,950,0.09,"triangle",0.025)},
+  sign:()=>{beep(660,660,0.1,"triangle",0.05);beep(660,660,0.1,"triangle",0.05,0.18)},
+  crash:k=>{noise(0.9,0.55,k==="kuoppa"?600:1400);beep(140,40,0.5,"sawtooth",0.18);
+    if(k==="hirvi")beep(190,95,1.1,"sawtooth",0.1,0.2);
+    if(k==="traktori"||k==="auto")beep(392,392,0.35,"square",0.07,0.5);
+    if(k==="kuoppa")beep(300,60,0.6,"sine",0.2,0.1);
+    if(k==="bensa"){beep(60,30,0.6,"sawtooth",0.1)}}
+};
+
+/* ---------- konepelti ---------- */
+const COMP={
+ akku:{n:"Akku",h:{akku:"Navat hapettuneet, kotelossa vuosiluku 2015. Vanha akku.",laturi:"Akku on tyhjä, vaikka auto ajoi tänne asti."}},
+ puolat:{n:"Sytytyspuolat",h:{puola:"Toisen puolan kyljessä hiushalkeama.",hehku:"Hehkutulpan johdossa nokea ja yksi liitin löysällä."}},
+ laturi:{n:"Laturi",h:{laturi:"Laturin laakeri rahisee ja hihna kiiltää."}},
+ jaahdytin:{n:"Jäähdytin ja vesipumppu",h:{vesipumppu:"Vesipumpun alla vihreää jäämää.",termari:"Jäähdyttimen yläletku jää kylmäksi, vaikka moottori on lämmin."}},
+ polttoaine:{n:"Polttoainesuodatin",h:{pumppu:"Suodattimen putkessa tuskin painetta.",vaara:"Suodattimesta haisee bensa – dieselautossa!"}},
+ pakosarja:{n:"Pakosarja ja lambda",h:{lambda:"Lambda-anturin johto sulanut kiinni pakosarjaan.",pakoputki:"Pakosarja on kunnossa, vuoto on kauempana takana."}},
+ ac:{n:"Ilmastointikompressori",h:{ilmastointi:"Kompressorin liitoksessa öljyinen jälki."}},
+ moottori:{n:"Moottori",h:{kytkin:"Moottori on kunnossa, mutta vaihteiston päästä haisee palanut kytkin."}}
+};
+function hoodHtml(){const q=S.queue[S.hood];return `<div class="overlay"><div class="card" role="dialog" aria-modal="true"><h2>Konepellin alla: ${q.car}</h2>
+  <div id="hood3d" style="height:260px;touch-action:none;background:#26302b"></div>
+  <p id="hoodmsg" style="min-height:3em">Napauta osaa tutkiaksesi sitä. Jokainen katsaus vie 5 minuuttia. Pyöritä vetämällä.</p>
+  <button class="big" data-act="hoodclose">Sulje konepelti</button></div></div>`}
+function mountHood(el){
+  const R=attach(el,260);if(!R)return;
+  const q=S.queue[S.hood];
+  const sc=new THREE.Scene();sc.background=new THREE.Color(0x26302b);lights(sc);
+  const car=carMesh(q.color);sc.add(car);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,20),M(0x5a5d5f));floor.rotation.x=-Math.PI/2;sc.add(floor);
+  const piv=new THREE.Group();piv.position.set(0,0.9,-0.3);const hood=new THREE.Mesh(new THREE.BoxGeometry(1.75,0.05,1.6),M(q.color));hood.position.z=-0.8;piv.add(hood);piv.rotation.x=1.15;car.add(piv);
+  const bay=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.05,1.6),M(0x1a1a1a));bay.position.set(0,0.89,-1.15);car.add(bay);
+  const parts=[];
+  const P=(id,geo,col,x,y,z,rx)=>{const m=new THREE.Mesh(geo,M(col));m.position.set(x,y,z);if(rx)m.rotation.x=rx;m.userData.comp=id;car.add(m);parts.push(m);return m};
+  P("akku",new THREE.BoxGeometry(0.4,0.35,0.3),0x222222,-0.6,1.08,-1.5);
+  P("moottori",new THREE.BoxGeometry(0.75,0.45,0.7),0x7d8084,0,1.12,-0.85);
+  [-0.24,-0.08,0.08,0.24].forEach(x=>P("puolat",new THREE.CylinderGeometry(0.05,0.05,0.18,10),0xb02a2a,x,1.43,-0.85));
+  P("laturi",new THREE.CylinderGeometry(0.14,0.14,0.2,16),0xc8c8c8,0.55,1.0,-1.55,Math.PI/2);
+  P("jaahdytin",new THREE.BoxGeometry(1.4,0.45,0.08),0x3a3f44,0,1.05,-1.92);
+  P("polttoaine",new THREE.CylinderGeometry(0.08,0.08,0.3,12),0x2f4f9a,-0.65,1.05,-0.55);
+  P("pakosarja",new THREE.BoxGeometry(0.18,0.3,0.6),0x7a4a2a,0.5,1.02,-0.85);
+  P("ac",new THREE.CylinderGeometry(0.12,0.12,0.22,14),0x9aa0a6,-0.25,1.0,-1.62,Math.PI/2);
+  const cam=new THREE.PerspectiveCamera(45,el.clientWidth/260,0.1,100);
+  let ang=0.25,drag=null,moved=0;
+  const place=()=>{cam.position.set(Math.sin(ang)*4.2,3,-Math.cos(ang)*4.2-0.6);cam.lookAt(0,1,-1)};place();
+  const ray=new THREE.Raycaster(),v=new THREE.Vector2(),c=R.r.domElement;
+  c.onpointerdown=e=>{drag=e.clientX;moved=0;c.setPointerCapture(e.pointerId)};
+  c.onpointermove=e=>{if(drag!==null){ang-=(e.clientX-drag)*0.008;moved+=Math.abs(e.clientX-drag);drag=e.clientX;ang=Math.max(-1.2,Math.min(1.2,ang));place()}};
+  c.onpointerup=e=>{drag=null;if(moved>6)return;const r=c.getBoundingClientRect();v.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(v,cam);
+    const hit=ray.intersectObjects(parts)[0];if(hit){parts.forEach(p=>p.material.emissive&&p.material.emissive.setHex(0));const same=parts.filter(p=>p.userData.comp===hit.object.userData.comp);same.forEach(p=>p.material.emissive.setHex(0x554400));hoodPick(hit.object.userData.comp)}};
+  const loop=()=>{R.r.render(sc,cam);R.raf=requestAnimationFrame(loop)};loop();
+}
+function hoodPick(id){
+  const q=S.queue[S.hood];if(!q||S.time>=960)return;
+  S.time+=speed(5);
+  const res=q.faults.filter(x=>!q.fixed.includes(x)).map(x=>COMP[id].h[x]).filter(Boolean);
+  const t=res.length?res.join(" "):"Näyttää ihan normaalilta.";
+  q.log.push(`<b>Konepellin alla – ${COMP[id].n}:</b> ${t}`);
+  document.getElementById("hoodmsg").innerHTML=`<b>${COMP[id].n}:</b> ${t} <span style="color:var(--muted)">(kello ${clock(S.time)})</span>`;
+  save();
+}
+
+/* ---------- kiristysminipeli ---------- */
+let MP={p:0,d:1,raf:0};
+function startMini(q,o,u){S.mini={q:S.queue.indexOf(q),f:o.id,u,n:0,hits:0,z:20+Math.random()*60,w:16}}
+function miniHtml(){const m=S.mini,o=F(m.f);return `<div class="overlay"><div class="card" role="dialog" aria-modal="true"><h2>${o.fix}</h2>
+  <p>${o.tire?"Kiristä pyöränmutterit":"Kiristä pultit"} oikeaan momenttiin: paina, kun neula on vihreällä. Hyvä työ nopeuttaa asennusta.</p>
+  <p style="font-family:'Saira Condensed',sans-serif;font-size:20px">Pultti ${Math.min(m.n+1,3)}/3 · osumia ${m.hits}</p>
+  <div style="position:relative;height:38px;background:var(--panel);border:2px solid var(--ink)"><div style="position:absolute;top:0;bottom:0;left:${m.z}%;width:${m.w}%;background:var(--ok)"></div><div id="needle" style="position:absolute;top:-5px;bottom:-5px;width:5px;background:var(--rust);left:${MP.p}%"></div></div>
+  <button class="big" data-act="tighten">Kiristä</button></div></div>`}
+function startMiniLoop(){cancelAnimationFrame(MP.raf);let last=performance.now();const sp=70+S.mini.n*35;
+  const loop=now=>{const dt=Math.min(0.05,(now-last)/1000);last=now;MP.p+=MP.d*sp*dt;if(MP.p>98){MP.p=98;MP.d=-1}if(MP.p<0){MP.p=0;MP.d=1}
+    const n=document.getElementById("needle");if(!n||!S.mini)return;n.style.left=MP.p+"%";MP.raf=requestAnimationFrame(loop)};MP.raf=requestAnimationFrame(loop)}
+function tighten(){const m=S.mini;const hit=MP.p+2.5>=m.z&&MP.p<=m.z+m.w;m.n++;if(hit)m.hits++;
+  if(!hit&&!m.oops&&Math.random()<0.15){const q=S.queue[m.q];if(q&&!q.faults.includes("sahkot")&&!F(m.f).tire){m.oops=1;q.faults.push("sahkot");q.opts.push("sahkot");stat("oops");q.log.push("<b>Voi ei:</b> ruuvi lipsahti väärään paikkaan ja katkaisi auton kaikki sähköt! Tämä korjataan omaan piikkiin.");S.ari=pick(["No niin. Taas meni ruuvi väärään paikkaan. Ei tämä ensimmäinen kerta ole.","Pimeää. Koko auto pimeänä. Ari katsoo ruuvimeisseliä syyttävästi.","Klassikko. Kalle, tuo se johtosarjakaavio."])}}m.z=10+Math.random()*75;m.w=Math.max(8,16-m.n*3);
+  if(m.n>=3){const q=S.queue[m.q],o=F(m.f),fac=[1.25,1,0.85,0.7][m.hits];S.mini=null;cancelAnimationFrame(MP.raf);
+    if(m.oops)S.ari="Ruuvi katkaisi sähköt. Etsi vika ja korjaa johtosarja ennen kuin asiakas huomaa.";
+    q.log.push(`<b>Kiristykset:</b> ${m.hits}/3 oikeaan momenttiin${m.hits===3?", siisti työ.":m.hits===0?", meni vähän sinne päin.":"."}`);repair(q,o,m.u,fac);if(m.hits===3)stat("perfectBolt")}}
+
+/* ---------- pokaalit, kirppis, Tom ---------- */
+function stat(k,n=1){S.st[k]=(S.st[k]||0)+n}
+const ACH=[
+ {id:"eka",n:"Ensimmäinen korjaus",d:"Korjaa yksi auto",c:()=>S.st.fixed>=1},
+ {id:"kymppi",n:"Kymmenen autoa",d:"Korjaa 10 autoa",c:()=>S.st.fixed>=10},
+ {id:"viiskymppi",n:"Konkari",d:"Korjaa 50 autoa",c:()=>S.st.fixed>=50},
+ {id:"putki",n:"Tarkka silmä",d:"5 autoa putkeen ilman väärää arvausta",c:()=>(S.st.bestStreak||0)>=5},
+ {id:"kats",n:"Puhtain paperein",d:"Katsastus läpi",c:()=>S.st.kats>=1},
+ {id:"momentti",n:"Momenttimestari",d:"Kaikki kolme pulttia oikein 10 kertaa",c:()=>(S.st.perfectBolt||0)>=10},
+ {id:"pulla",n:"Pullapäällikkö",d:"Raili toi pullaa 10 kertaa",c:()=>(S.st.pulla||0)>=10},
+ {id:"hirvi",n:"Hirvenväistäjä",d:"Väistä 50 hirveä ajopelissä",c:()=>(S.st.moose||0)>=50},
+ {id:"kilsa",n:"Kilometritehdas",d:"Aja 1000 m yhdellä kerralla",c:()=>(S.bestDrive||0)>=1000},
+ {id:"tom",n:"Tomin pelastaja",d:"Korjaa 3 Turbo-Tomin lähettämää autoa",c:()=>(S.st.tom||0)>=3},
+ {id:"kirppis",n:"Kirppiskuningas",d:"Löydä harvinainen osa arvoituslaatikosta",c:()=>(S.st.rare||0)>=1},
+ {id:"oops",n:"Taas meni ruuvi väärään paikkaan",d:"Katkaise auton sähköt omalla ruuvilla",c:()=>(S.st.oops||0)>=1},
+ {id:"maine",n:"Viiden tähden paja",d:"Nosta maine täyteen",c:()=>S.rep>=4.6},
+ {id:"saab",n:"Saab valmis",d:"Saa ensimmäinen projekti valmiiksi",c:()=>S.projIdx>=1},
+ {id:"kaikki",n:"Projektimestari",d:"Kaikki kolme projektia valmiina",c:()=>S.projIdx>=3}
+];
+function checkAch(){ACH.forEach(a=>{if(!S.ach[a.id]&&a.c()){S.ach[a.id]=true;S.ari=`🏆 Uusi pokaali hyllyyn: ${a.n}!`}})}
+function shelf(){const got=ACH.filter(a=>S.ach[a.id]).length;return `<h3>Pokaalihylly ${got}/${ACH.length}</h3><div class="btns">`+ACH.map(a=>`<span class="tool" style="cursor:default;${S.ach[a.id]?"border-color:var(--yellow)":"opacity:.45"}">${S.ach[a.id]?"🏆":"🔒"} ${a.n}<small>${a.d}</small></span>`).join("")+`</div>`}
+const isSat=()=>(S.day-1)%7===5;
+function flea(){
+  if(!isSat())return `<p style="font-size:14px;color:var(--muted);margin-top:16px">Hyllyssä ${S.spares} ylijäämäosaa. Kirppis on lauantaisin.</p>`;
+  return `<h3>Lauantain kirppis</h3>${S.fleaMsg?`<p><em>${S.fleaMsg}</em></p>`:""}<div class="shop">
+   <div class="item"><div><b>Myy ylijäämäosat</b><p>Hyllyssä ${S.spares} osaa, 20 € kappale.</p></div><button class="buy" data-act="sell" ${S.spares?"":"disabled"}>${S.spares*20} €</button></div>
+   <div class="item"><div><b>Arvoituslaatikko</b><p>Yksi laatikko per lauantai. Voi olla harvinainen osa, voi olla romua.</p></div><button class="buy" data-act="box" ${S.fleaDay===S.day||S.money<120?"disabled":""}>120 €</button></div></div>`;
+}
+function openBox(){
+  S.money-=120;S.fleaDay=S.day;const r=Math.random(),P=PROJECTS[S.projIdx];
+  const left=P?P.parts.filter(p=>!S.proj[p[0]]):[];
+  if(r<0.35&&left.length){const p=pick(left);S.proj[p[0]]=true;stat("rare");S.fleaMsg=`Laatikon pohjalta löytyi harvinainen osa! ”${p[1]}” on nyt tehty projektiautoon.`}
+  else if(r<0.65){S.spares+=4;S.fleaMsg="Laatikossa oli neljä käyttökelpoista osaa. Ne menivät hyllyyn."}
+  else S.fleaMsg=pick(["Laatikossa oli vanhoja Tekniikan Maailmoja ja yksi vasen kumisaapas.","Laatikossa oli 40 kpl samaa sulaketta. Ari huokaisee.","Laatikossa oli kasettisoitin ja Eppu Normaalin kasetti. Ei osa, mutta hyvä löytö."]);
+}
+const RQ={kimmo:"Taas Kimmo. Laita kahvit tippumaan, se ei kuitenkaan ehdi juoda.",raili:"Raili! Nyt käytöstavat kohdalleen.",esko:"Esko on taas mitannut. Katsotaan mitä insinööri sanoo.",pentti:"Pentti. Älä edes ehdota uutta osaa.",tapsa:"Tapsan taksi. Mittari raksuttaa, joten vauhtia."};
+const UPSELLS=[{n:"Pieni viritys",pay:150,t:60},{n:"Iso takaspoileri",pay:120,t:45},{n:"Sävytetyt ikkunat",pay:180,t:70},{n:"Lisävalot keulaan",pay:110,t:40},{n:"Vanteiden maalaus mustaksi",pay:140,t:55}];
+function verstas(){return verstasMain()+shelf()+flea()}
+
+document.addEventListener("keydown",e=>{if(S&&S.tab==="ajo"&&G&&G.steer){if(e.key==="ArrowLeft"||e.key==="a"){G.steer(-1);e.preventDefault()}if(e.key==="ArrowRight"||e.key==="d"){G.steer(1);e.preventDefault()}if(e.key===" "&&!G.run){startGame();e.preventDefault()}}});
+
+S=load();
+if(!S){S=fresh();newDay()}
+else if(!S.migrate&&!S.queue.length)newDay();
+S.st=S.st||{};S.ach=S.ach||{};S.spares=S.spares||0;S.mini=null;S.hood=null;
+render();
+</script>
+</body>
+</html>
